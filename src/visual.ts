@@ -52,10 +52,10 @@ const pxToPt = 0.75,
 export class Visual implements IVisual {
 
   private target: HTMLElement;
-  private searchUi: d3Selection<HTMLDivElement, any, any, any>;
-  private searchBox: d3Selection<HTMLInputElement, any, any, any>;
-  private searchButton: d3Selection<HTMLButtonElement, any, any, any>;
-  private clearButton: d3Selection<HTMLButtonElement, any, any, any>;
+  private searchUi: d3Selection<HTMLDivElement, unknown, null, undefined>;
+  private searchBox: d3Selection<HTMLInputElement, unknown, null, undefined>;
+  private searchButton: d3Selection<HTMLButtonElement, unknown, null, undefined>;
+  private clearButton: d3Selection<HTMLButtonElement, unknown, null, undefined>;
   private column: powerbi.DataViewMetadataColumn;
   private host: powerbi.extensibility.visual.IVisualHost;
   private events: IVisualEventService;
@@ -216,7 +216,7 @@ export class Visual implements IVisual {
       }
 
 
-      let filter: any = null;
+      let filter: AdvancedFilter | null = null;
       let action = FilterAction.remove;
       const isBlank = ((text || "") + "").match(/^\s*$/);
       if (!isBlank) {
