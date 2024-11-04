@@ -33,7 +33,9 @@ import IVisual = powerbi.extensibility.visual.IVisual;
 import IVisualEventService = powerbi.extensibility.IVisualEventService;
 import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
 import FilterAction = powerbi.FilterAction;
-import { IAdvancedFilter, AdvancedFilter } from "powerbi-models";
+import ISQExpr = powerbi.data.ISQExpr;
+
+import { IAdvancedFilter, AdvancedFilter, IFilterTarget } from "powerbi-models";
 
 import { Selection as d3Selection, select as d3Select } from "d3-selection";
 
@@ -199,14 +201,24 @@ export class Visual implements IVisual {
    */
   public performSearch(text: string) {
     if (this.column) {
-      const isBlank = ((text || "") + "").match(/^\s*$/);
-      const target = {
-        table: this.column.queryName.substr(0, this.column.queryName.indexOf(".")),
-        column: this.column.queryName.substr(this.column.queryName.indexOf(".") + 1)
-      };
+      let target: IFilterTarget;
+
+      if (this.isValidExpr(this.column.expr)) {
+        const columnName: string = this.column.expr.ref;
+        const tableName: string = this.column.expr.source.entity;
+        target = { table: tableName, column: columnName };
+      } else {
+        const dotIndex = this.column.queryName.indexOf(".");
+        target = {
+          table: this.column.queryName.slice(0, dotIndex),
+          column: this.column.queryName.slice(dotIndex + 1)
+        };
+      }
+
 
       let filter: any = null;
       let action = FilterAction.remove;
+      const isBlank = ((text || "") + "").match(/^\s*$/);
       if (!isBlank) {
         filter = new AdvancedFilter(
           target,
@@ -221,5 +233,17 @@ export class Visual implements IVisual {
       this.host.applyJsonFilter(filter, "general", "filter", action);
     }
     this.searchBox.property("value", text);
+  }
+
+  private isValidExpr(expr: ISQExpr | undefined): expr is { ref: string, source: { entity: string } } {
+    if (expr != null &&
+      'ref' in expr && typeof expr.ref === 'string' &&
+      'source' in expr && typeof expr.source === 'object' &&
+      'entity' in expr.source && typeof expr.source.entity === 'string'
+    ) {
+      return true;
+    }
+
+    return false;
   }
 }
