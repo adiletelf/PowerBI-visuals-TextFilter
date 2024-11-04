@@ -10,7 +10,7 @@
     "gitHubUrl": "https://github.com/microsoft/PowerBI-visuals-TextFilter"
   },
   "output": "dist/textFilter.pbiviz",
-  "apiVersion": "5.8.0",
+  "apiVersion": "5.11.0",
   "author": {
     "name": "Microsoft",
     "email": "pbicvsupport@microsoft.com"
