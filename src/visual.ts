@@ -34,7 +34,6 @@ import IVisualEventService = powerbi.extensibility.IVisualEventService;
 import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
 import FilterAction = powerbi.FilterAction;
 import ISQExpr = powerbi.data.ISQExpr;
-
 import { IAdvancedFilter, AdvancedFilter, IFilterTarget } from "powerbi-models";
 
 import { Selection as d3Selection, select as d3Select } from "d3-selection";
@@ -201,12 +200,23 @@ export class Visual implements IVisual {
    */
   public performSearch(text: string) {
     if (this.column) {
+      const isBlank = ((text || "") + "").match(/^\s*$/);
       let target: IFilterTarget;
 
-      if (this.isValidExpr(this.column.expr)) {
+      if (this.isColumnExpr(this.column.expr)) {
         const columnName: string = this.column.expr.ref;
         const tableName: string = this.column.expr.source.entity;
         target = { table: tableName, column: columnName };
+      } else if (this.isHierarchyExpr(this.column.expr)) {
+        const hierarchyName: string = this.column.expr.arg.hierarchy
+        const tableName: string = this.column.expr.arg.arg.entity;
+        const levelName: string = this.column.expr.level;
+
+        target = {
+          table: tableName,
+          hierarchy: hierarchyName,
+          hierarchyLevel: levelName
+        }
       } else {
         const dotIndex = this.column.queryName.indexOf(".");
         target = {
@@ -215,10 +225,8 @@ export class Visual implements IVisual {
         };
       }
 
-
       let filter: AdvancedFilter | null = null;
       let action = FilterAction.remove;
-      const isBlank = ((text || "") + "").match(/^\s*$/);
       if (!isBlank) {
         filter = new AdvancedFilter(
           target,
@@ -235,11 +243,53 @@ export class Visual implements IVisual {
     this.searchBox.property("value", text);
   }
 
-  private isValidExpr(expr: ISQExpr | undefined): expr is { ref: string, source: { entity: string } } {
+  /**
+   * Is simple column expression.
+   * Ref - column name.
+   * Entity - table name.
+   */
+  private isColumnExpr(expr: ISQExpr | undefined): expr is {
+    ref: string,
+    kind: 2,
+    source: {
+      entity: string
+    }
+  } {
     if (expr != null &&
+      'kind' in expr && expr.kind === 2 &&
       'ref' in expr && typeof expr.ref === 'string' &&
       'source' in expr && typeof expr.source === 'object' &&
       'entity' in expr.source && typeof expr.source.entity === 'string'
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Is hierarchy expression.
+   * Level - level name.
+   * Hierarchy - hierarchy name.
+   * Entity - table name.
+   */
+  private isHierarchyExpr(expr: ISQExpr | undefined): expr is {
+    kind: 7,
+    level: string,
+    arg: {
+      hierarchy: string,
+      arg: {
+        entity: string
+      }
+    }
+  } {
+    if (expr != null &&
+      'kind' in expr && expr.kind === 7 &&
+      'level' in expr && typeof expr.level === 'string' &&
+      'arg' in expr && typeof expr.arg === 'object' &&
+      'hierarchy' in expr.arg && typeof expr.arg.hierarchy === 'string' &&
+      'arg' in expr.arg && typeof expr.arg.arg === 'object' &&
+      'entity' in expr.arg.arg && typeof expr.arg.arg.entity === 'string'
     ) {
       return true;
     }
